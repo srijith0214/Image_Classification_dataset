@@ -285,4 +285,5 @@ This project follows [PEP 8](https://www.python.org/dev/peps/pep-0008/) conventi
 
 ## 📄 License
 
-MIT License – see [LICENSE](LICENSE) for details.
+This project was developed as part of the GUVI | HCL Data Science & AI Programme.
+For educational use only.
