@@ -211,18 +211,52 @@ Configure the model and class-names paths in the **sidebar**.
 
 ## 📊 Model Comparison
 
-All six models are evaluated on the held-out **test set**. The following metrics are reported:
+All 3 models were evaluated on the held-out **test set** (3,187 images, 11 classes). Training was run on Google Colab with a T4 GPU.
 
-| Model | Accuracy | Precision | Recall | F1-Score |
-|-------|----------|-----------|--------|----------|
-| CustomCNN | – | – | – | – |
-| VGG16 | – | – | – | – |
-| ResNet50 | – | – | – | – |
-| MobileNetV2 | – | – | – | – |
-| InceptionV3 | – | – | – | – |
-| EfficientNetB0 | – | – | – | – |
+| Model | Accuracy | Precision | Recall | F1-Score | Train Time | Notes |
+|-------|:--------:|:---------:|:------:|:--------:|:----------:|-------|
+| CustomCNN | 0.9934 | 0.9894 | 0.9934 | 0.9914 | ~35 min | Trained from scratch, 25 epochs |
+| **MobileNetV2** ⭐ | **0.9969** | **0.9968** | **0.9969** | **0.9968** | ~50 min | Transfer learning + 10 fine-tune epochs |
+| EfficientNetB0 | 0.2099 | 0.1182 | 0.2099 | 0.0998 | ~26 min | ⚠️ Did not converge — see note below |
 
-> *(Metrics will be populated after training on your dataset)*
+> ⭐ **Best Model: MobileNetV2** with **99.69% test accuracy**
+
+### 📌 Key Observations
+
+- **MobileNetV2** achieved the best results, reaching 99.45% validation accuracy after phase-1 training alone, and 99.69% test accuracy after fine-tuning from layer 100 onwards. It performed near-perfectly on all 11 species.
+- **CustomCNN** performed remarkably well for a model trained from scratch, achieving 99.34% test accuracy. The class `animal fish bass` (only 13 test samples) scored 0.00 F1 due to severe class imbalance.
+- **EfficientNetB0** failed to learn — accuracy plateaued at ~17–22% (near random for 11 classes). This is a known issue with EfficientNet on Colab when images are **not pre-scaled to [0, 255]** before being fed through its internal rescaling layer. The fix is shown below.
+
+### ⚠️ EfficientNetB0 Fix
+
+EfficientNet has its own built-in rescaling layer and **should NOT receive images pre-divided by 255**. To fix, use a separate generator without `rescale`:
+
+```python
+# For EfficientNetB0 only — no rescale in the generator
+efficientnet_datagen = ImageDataGenerator(
+    rotation_range=20, zoom_range=0.2,
+    width_shift_range=0.1, height_shift_range=0.1,
+    horizontal_flip=True, fill_mode="nearest"
+    # ← NO rescale=1./255 here
+)
+```
+
+### 📋 Per-Class Results — MobileNetV2 (Best Model)
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|:---------:|:------:|:--------:|:-------:|
+| animal fish | 1.00 | 0.99 | 0.99 | 520 |
+| animal fish bass | 0.91 | 0.77 | 0.83 | 13 |
+| black sea sprat | 0.99 | 1.00 | 0.99 | 298 |
+| gilt head bream | 1.00 | 1.00 | 1.00 | 305 |
+| hourse mackerel | 1.00 | 1.00 | 1.00 | 286 |
+| red mullet | 1.00 | 1.00 | 1.00 | 291 |
+| red sea bream | 1.00 | 1.00 | 1.00 | 273 |
+| sea bass | 0.99 | 1.00 | 1.00 | 327 |
+| shrimp | 1.00 | 1.00 | 1.00 | 289 |
+| striped red mullet | 0.99 | 1.00 | 1.00 | 293 |
+| trout | 1.00 | 1.00 | 1.00 | 292 |
+| **weighted avg** | **1.00** | **1.00** | **1.00** | **3187** |
 
 ---
 
@@ -243,15 +277,12 @@ Raw Dataset (train/val/test)
   └─────────────────────┘
         │
         ▼
-  Model Training (×6)
-  ┌──────────────────────────────┐
-  │ CustomCNN (from scratch)     │
-  │ VGG16   (transfer + finetune)│
-  │ ResNet50 (transfer + finetune)│
-  │ MobileNetV2 (transfer + ft)  │
-  │ InceptionV3 (transfer + ft)  │
-  │ EfficientNetB0 (transfer+ft) │
-  └──────────────────────────────┘
+  Model Training (×3)
+  ┌──────────────────────────────────────┐
+  │ CustomCNN      (from scratch)        │
+  │ MobileNetV2    (transfer + finetune) │ ⭐ Best
+  │ EfficientNetB0 (transfer + finetune) │
+  └──────────────────────────────────────┘
         │
         ▼
   Evaluation (Test Set)
@@ -285,5 +316,4 @@ This project follows [PEP 8](https://www.python.org/dev/peps/pep-0008/) conventi
 
 ## 📄 License
 
-This project was developed as part of the GUVI | HCL Data Science & AI Programme.
-For educational use only.
+MIT License – see [LICENSE](LICENSE) for details.
